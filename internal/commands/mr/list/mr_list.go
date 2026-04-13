@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -28,23 +28,21 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			opts := &gitlab.ListProjectMergeRequestsOptions{
-				ListOptions: gitlab.ListOptions{PerPage: int64(perPage)},
-			}
-			if state != "" {
-				opts.State = gitlab.Ptr(state)
-			}
-			if len(labels) > 0 {
-				opts.Labels = (*gitlab.LabelOptions)(&labels)
-			}
-
-			mrs, _, err := client.MergeRequests.ListProjectMergeRequests(project, opts)
+			mrs, err := gitlabop.ListMergeRequests(client, gitlabop.ListMergeRequestsOptions{
+				Project: project,
+				State:   state,
+				Labels:  labels,
+				PerPage: int64(perPage),
+			})
 			if err != nil {
-				return fmt.Errorf("listing merge requests: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(mrs, "", "  ")
+				data, err := json.MarshalIndent(mrs, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}
@@ -64,7 +62,7 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project path (required)")
 	cmd.Flags().StringVarP(&state, "state", "s", "opened", "Filter by state: opened, closed, merged, all")
 	cmd.Flags().StringSliceVarP(&labels, "labels", "l", nil, "Filter by labels")
-	cmd.Flags().IntVar(&perPage, "per-page", 30, "Number of items per page")
+	cmd.Flags().IntVar(&perPage, "per-page", 20, "Number of items per page")
 	cmd.Flags().BoolVar(&outputJSON, "json", false, "Output as JSON")
 	_ = cmd.MarkFlagRequired("project")
 

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -29,26 +29,22 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			opts := &gitlab.CreateIssueOptions{
-				Title: gitlab.Ptr(title),
-			}
-			if description != "" {
-				opts.Description = gitlab.Ptr(description)
-			}
-			if len(labels) > 0 {
-				opts.Labels = (*gitlab.LabelOptions)(&labels)
-			}
-			if len(assignees) > 0 {
-				opts.AssigneeIDs = &assignees
-			}
-
-			issue, _, err := client.Issues.CreateIssue(project, opts)
+			issue, err := gitlabop.CreateIssue(client, gitlabop.CreateIssueOptions{
+				Project:     project,
+				Title:       title,
+				Description: description,
+				Labels:      labels,
+				AssigneeIDs: assignees,
+			})
 			if err != nil {
-				return fmt.Errorf("creating issue: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(issue, "", "  ")
+				data, err := json.MarshalIndent(issue, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}

@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -31,13 +32,16 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			pipeline, _, err := client.Pipelines.GetPipeline(project, int64(pipelineID))
+			pipeline, err := gitlabop.GetPipeline(client, project, int64(pipelineID))
 			if err != nil {
-				return fmt.Errorf("getting pipeline: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(pipeline, "", "  ")
+				data, err := json.MarshalIndent(pipeline, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}

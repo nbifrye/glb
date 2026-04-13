@@ -19,10 +19,10 @@ func TokenForHost(cfg *config.Config, hostname string) string {
 
 func DefaultHostWithToken(cfg *config.Config) (hostname, token string) {
 	if token := os.Getenv("GITLAB_TOKEN"); token != "" {
-		return glinstance.Default(), token
+		return hostFromEnvOrConfig(cfg), token
 	}
 	if token := os.Getenv("GLB_TOKEN"); token != "" {
-		return glinstance.Default(), token
+		return hostFromEnvOrConfig(cfg), token
 	}
 
 	for _, h := range cfg.Hosts() {
@@ -31,4 +31,18 @@ func DefaultHostWithToken(cfg *config.Config) (hostname, token string) {
 		}
 	}
 	return glinstance.Default(), ""
+}
+
+func hostFromEnvOrConfig(cfg *config.Config) string {
+	if h := os.Getenv("GITLAB_HOST"); h != "" {
+		return glinstance.NormalizeHostname(h)
+	}
+	if h := os.Getenv("GLB_HOST"); h != "" {
+		return glinstance.NormalizeHostname(h)
+	}
+	hosts := cfg.Hosts()
+	if len(hosts) == 1 {
+		return hosts[0]
+	}
+	return glinstance.Default()
 }

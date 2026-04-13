@@ -26,10 +26,13 @@ func registerCompareTools(s *mcp.Server, client *gitlab.Client) {
 			To:   gitlab.Ptr(args.To),
 		})
 		if err != nil {
-			return textResult(fmt.Sprintf("Error comparing refs: %v", err)), nil, nil
+			return errorResult(fmt.Sprintf("Error comparing refs: %v", err)), nil, nil
 		}
 
-		data, _ := json.Marshal(compare)
+		data, err := json.Marshal(compare)
+		if err != nil {
+			return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+		}
 		return textResult(string(data)), nil, nil
 	})
 }

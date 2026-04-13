@@ -5,15 +5,15 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
 	var (
-		project    string
-		squash     bool
+		project      string
+		squash       bool
 		removeBranch bool
 	)
 
@@ -32,17 +32,14 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			opts := &gitlab.AcceptMergeRequestOptions{}
-			if squash {
-				opts.Squash = gitlab.Ptr(true)
-			}
-			if removeBranch {
-				opts.ShouldRemoveSourceBranch = gitlab.Ptr(true)
-			}
-
-			mr, _, err := client.MergeRequests.AcceptMergeRequest(project, int64(mrID), opts)
+			mr, err := gitlabop.MergeMergeRequest(client, gitlabop.MergeMergeRequestOptions{
+				Project:      project,
+				IID:          int64(mrID),
+				Squash:       squash,
+				RemoveBranch: removeBranch,
+			})
 			if err != nil {
-				return fmt.Errorf("merging MR: %w", err)
+				return err
 			}
 
 			fmt.Fprintf(f.IO.Out, "Merged !%d: %s\n", mr.IID, mr.Title)

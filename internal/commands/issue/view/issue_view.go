@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -32,21 +33,28 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			issue, _, err := client.Issues.GetIssue(project, int64(issueID))
+			issue, err := gitlabop.GetIssue(client, project, int64(issueID))
 			if err != nil {
-				return fmt.Errorf("getting issue: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(issue, "", "  ")
+				data, err := json.MarshalIndent(issue, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}
 
 			fmt.Fprintf(f.IO.Out, "Title:    #%d %s\n", issue.IID, issue.Title)
 			fmt.Fprintf(f.IO.Out, "State:    %s\n", issue.State)
-			if issue.Assignee != nil {
-				fmt.Fprintf(f.IO.Out, "Assignee: %s\n", issue.Assignee.Username)
+			if len(issue.Assignees) > 0 {
+				names := make([]string, 0, len(issue.Assignees))
+				for _, a := range issue.Assignees {
+					names = append(names, a.Username)
+				}
+				fmt.Fprintf(f.IO.Out, "Assignee: %s\n", strings.Join(names, ", "))
 			}
 			if len(issue.Labels) > 0 {
 				fmt.Fprintf(f.IO.Out, "Labels:   %s\n", strings.Join(issue.Labels, ", "))

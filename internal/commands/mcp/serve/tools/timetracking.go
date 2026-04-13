@@ -27,6 +27,7 @@ func registerTimetrackingTools(s *mcp.Server, client *gitlab.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "add_time_spent",
 		Description: "Add time spent on an issue or merge request. Uses GitLab's time tracking format. [DIFFERENTIATED: not available in glab]",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: boolPtr(false)},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args addTimeSpentArgs) (*mcp.CallToolResult, any, error) {
 		switch args.ResourceType {
 		case "issue":
@@ -34,9 +35,12 @@ func registerTimetrackingTools(s *mcp.Server, client *gitlab.Client) {
 				Duration: gitlab.Ptr(args.Duration),
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error adding time: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error adding time: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(stats)
+			data, err := json.Marshal(stats)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 
 		case "mr":
@@ -44,19 +48,23 @@ func registerTimetrackingTools(s *mcp.Server, client *gitlab.Client) {
 				Duration: gitlab.Ptr(args.Duration),
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error adding time: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error adding time: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(stats)
+			data, err := json.Marshal(stats)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 
 		default:
-			return textResult("Error: resource_type must be 'issue' or 'mr'"), nil, nil
+			return errorResult("Error: resource_type must be 'issue' or 'mr'"), nil, nil
 		}
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "set_time_estimate",
 		Description: "Set a time estimate on an issue or merge request. Uses GitLab's time tracking format. [DIFFERENTIATED: not available in glab]",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: boolPtr(false)},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args setTimeEstimateArgs) (*mcp.CallToolResult, any, error) {
 		switch args.ResourceType {
 		case "issue":
@@ -64,9 +72,12 @@ func registerTimetrackingTools(s *mcp.Server, client *gitlab.Client) {
 				Duration: gitlab.Ptr(args.Duration),
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error setting estimate: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error setting estimate: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(stats)
+			data, err := json.Marshal(stats)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 
 		case "mr":
@@ -74,13 +85,16 @@ func registerTimetrackingTools(s *mcp.Server, client *gitlab.Client) {
 				Duration: gitlab.Ptr(args.Duration),
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error setting estimate: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error setting estimate: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(stats)
+			data, err := json.Marshal(stats)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 
 		default:
-			return textResult("Error: resource_type must be 'issue' or 'mr'"), nil, nil
+			return errorResult("Error: resource_type must be 'issue' or 'mr'"), nil, nil
 		}
 	})
 }

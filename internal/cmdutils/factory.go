@@ -56,3 +56,18 @@ func (f *Factory) Hostname() (string, error) {
 	hostname, _ := auth.DefaultHostWithToken(cfg)
 	return hostname, nil
 }
+
+func (f *Factory) GitLabClientForHost(hostname string) (*gitlab.Client, error) {
+	cfg, err := f.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	token := auth.TokenForHost(cfg, hostname)
+	if token == "" {
+		return nil, fmt.Errorf("no token found for host %q: run 'glb auth login --hostname %s' or set GITLAB_TOKEN", hostname, hostname)
+	}
+
+	protocol := cfg.APIProtocol(hostname)
+	return api.NewGitLabClient(token, hostname, protocol)
+}

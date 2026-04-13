@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -28,11 +28,9 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			_, _, err = client.Issues.UpdateIssue(project, int64(issueID), &gitlab.UpdateIssueOptions{
-				StateEvent: gitlab.Ptr("close"),
-			})
+			_, err = gitlabop.CloseIssue(client, project, int64(issueID))
 			if err != nil {
-				return fmt.Errorf("closing issue: %w", err)
+				return err
 			}
 
 			fmt.Fprintf(f.IO.Out, "Closed issue #%d\n", issueID)

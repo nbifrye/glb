@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -29,29 +29,22 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			opts := &gitlab.ListProjectIssuesOptions{
-				ListOptions: gitlab.ListOptions{PerPage: int64(perPage)},
-			}
-			if state != "" {
-				opts.State = gitlab.Ptr(state)
-			}
-			if len(labels) > 0 {
-				opts.Labels = (*gitlab.LabelOptions)(&labels)
-			}
-			if assignee != "" {
-				users, _, err := client.Users.ListUsers(&gitlab.ListUsersOptions{Username: gitlab.Ptr(assignee)})
-				if err == nil && len(users) > 0 {
-					opts.AssigneeID = gitlab.AssigneeID(users[0].ID)
-				}
-			}
-
-			issues, _, err := client.Issues.ListProjectIssues(project, opts)
+			issues, err := gitlabop.ListIssues(client, gitlabop.ListIssuesOptions{
+				Project:  project,
+				State:    state,
+				Labels:   labels,
+				Assignee: assignee,
+				PerPage:  int64(perPage),
+			})
 			if err != nil {
-				return fmt.Errorf("listing issues: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(issues, "", "  ")
+				data, err := json.MarshalIndent(issues, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}
@@ -72,7 +65,7 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 	cmd.Flags().StringVarP(&state, "state", "s", "opened", "Filter by state: opened, closed, all")
 	cmd.Flags().StringSliceVarP(&labels, "labels", "l", nil, "Filter by labels")
 	cmd.Flags().StringVarP(&assignee, "assignee", "a", "", "Filter by assignee username")
-	cmd.Flags().IntVar(&perPage, "per-page", 30, "Number of items per page")
+	cmd.Flags().IntVar(&perPage, "per-page", 20, "Number of items per page")
 	cmd.Flags().BoolVar(&outputJSON, "json", false, "Output as JSON")
 	_ = cmd.MarkFlagRequired("project")
 

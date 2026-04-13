@@ -18,4 +18,5 @@ func RegisterAll(s *mcp.Server, client *gitlab.Client) {
 	registerCompareTools(s, client)
 	registerTimetrackingTools(s, client)
 	registerBatchTools(s, client)
+	registerLabelTools(s, client)
 }

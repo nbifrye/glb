@@ -7,13 +7,13 @@ import (
 	serveCmd "github.com/nbifrye/glb/internal/commands/mcp/serve"
 )
 
-func NewCmd(f *cmdutils.Factory) *cobra.Command {
+func NewCmd(f *cmdutils.Factory, version string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mcp <command>",
 		Short: "Model Context Protocol server for AI agents",
 	}
 
-	cmd.AddCommand(serveCmd.NewCmd(f))
+	cmd.AddCommand(serveCmd.NewCmd(f, version))
 
 	return cmd
 }
