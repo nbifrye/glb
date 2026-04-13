@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -58,7 +59,8 @@ The endpoint should start with '/' (e.g., /projects).`,
 				req.Header.Set("Content-Type", "application/json")
 			}
 
-			resp, err := http.DefaultClient.Do(req)
+			httpClient := &http.Client{Timeout: 30 * time.Second}
+			resp, err := httpClient.Do(req)
 			if err != nil {
 				return fmt.Errorf("making request: %w", err)
 			}

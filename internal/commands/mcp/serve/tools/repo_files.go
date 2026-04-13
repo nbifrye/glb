@@ -37,14 +37,14 @@ func registerRepoFileTools(s *mcp.Server, client *gitlab.Client) {
 
 		file, _, err := client.RepositoryFiles.GetFile(args.Project, args.FilePath, opts)
 		if err != nil {
-			return textResult(fmt.Sprintf("Error reading file: %v", err)), nil, nil
+			return errorResult(fmt.Sprintf("Error reading file: %v", err)), nil, nil
 		}
 
 		var content string
 		if file.Encoding == "base64" {
 			decoded, err := base64.StdEncoding.DecodeString(file.Content)
 			if err != nil {
-				return textResult(fmt.Sprintf("Error decoding file: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error decoding file: %v", err)), nil, nil
 			}
 			content = string(decoded)
 		} else {
@@ -78,10 +78,13 @@ func registerRepoFileTools(s *mcp.Server, client *gitlab.Client) {
 
 		tree, _, err := client.Repositories.ListTree(args.Project, opts)
 		if err != nil {
-			return textResult(fmt.Sprintf("Error listing tree: %v", err)), nil, nil
+			return errorResult(fmt.Sprintf("Error listing tree: %v", err)), nil, nil
 		}
 
-		data, _ := json.Marshal(tree)
+		data, err := json.Marshal(tree)
+		if err != nil {
+			return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+		}
 		return textResult(string(data)), nil, nil
 	})
 }

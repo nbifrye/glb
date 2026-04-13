@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -31,11 +31,9 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			note, _, err := client.Notes.CreateMergeRequestNote(project, int64(mrID), &gitlab.CreateMergeRequestNoteOptions{
-				Body: gitlab.Ptr(body),
-			})
+			note, err := gitlabop.AddMergeRequestNote(client, project, int64(mrID), body)
 			if err != nil {
-				return fmt.Errorf("adding note: %w", err)
+				return err
 			}
 
 			fmt.Fprintf(f.IO.Out, "Added note #%d to MR !%d\n", note.ID, mrID)

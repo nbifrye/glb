@@ -25,7 +25,15 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return nil
 			}
 
-			masked := token[:4] + "****" + token[len(token)-4:]
+			var masked string
+			switch {
+			case len(token) <= 4:
+				masked = "****"
+			case len(token) < 8:
+				masked = token[:2] + "****"
+			default:
+				masked = token[:4] + "****" + token[len(token)-4:]
+			}
 			fmt.Fprintf(f.IO.Out, "Authenticated to %s (token: %s)\n", hostname, masked)
 			return nil
 		},

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -28,24 +28,21 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			opts := &gitlab.ListProjectPipelinesOptions{
-				ListOptions: gitlab.ListOptions{PerPage: int64(perPage)},
-			}
-			if status != "" {
-				s := gitlab.BuildStateValue(status)
-				opts.Status = &s
-			}
-			if ref != "" {
-				opts.Ref = gitlab.Ptr(ref)
-			}
-
-			pipelines, _, err := client.Pipelines.ListProjectPipelines(project, opts)
+			pipelines, err := gitlabop.ListPipelines(client, gitlabop.ListPipelinesOptions{
+				Project: project,
+				Status:  status,
+				Ref:     ref,
+				PerPage: int64(perPage),
+			})
 			if err != nil {
-				return fmt.Errorf("listing pipelines: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(pipelines, "", "  ")
+				data, err := json.MarshalIndent(pipelines, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}
@@ -65,7 +62,7 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 	cmd.Flags().StringVarP(&project, "project", "p", "", "Project path (required)")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status: running, pending, success, failed, etc.")
 	cmd.Flags().StringVar(&ref, "ref", "", "Filter by ref (branch or tag)")
-	cmd.Flags().IntVar(&perPage, "per-page", 30, "Number of items per page")
+	cmd.Flags().IntVar(&perPage, "per-page", 20, "Number of items per page")
 	cmd.Flags().BoolVar(&outputJSON, "json", false, "Output as JSON")
 	_ = cmd.MarkFlagRequired("project")
 

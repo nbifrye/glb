@@ -26,15 +26,28 @@ type updateResult struct {
 	Message string `json:"message,omitempty"`
 }
 
+type batchResponse struct {
+	Summary struct {
+		Total   int `json:"total"`
+		Updated int `json:"updated"`
+		Failed  int `json:"failed"`
+	} `json:"summary"`
+	Results []updateResult `json:"results"`
+}
+
 func registerBatchTools(s *mcp.Server, client *gitlab.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "batch_update",
-		Description: "Bulk update multiple issues or merge requests at once. Supports changing labels, state, and milestone. Particularly useful for AI agents triaging multiple items. [DIFFERENTIATED: not available in glab]",
+		Description: "Bulk update multiple issues or merge requests at once. Supports changing labels, state, and milestone. Items are processed sequentially. [DIFFERENTIATED: not available in glab]",
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: boolPtr(true)},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args batchUpdateArgs) (*mcp.CallToolResult, any, error) {
 		ids := parseIntList(args.ResourceIDs)
 		if len(ids) == 0 {
-			return textResult("Error: no valid resource IDs provided"), nil, nil
+			return errorResult("Error: no valid resource IDs provided"), nil, nil
+		}
+
+		if args.ResourceType != "issue" && args.ResourceType != "mr" {
+			return errorResult("Error: resource_type must be 'issue' or 'mr'"), nil, nil
 		}
 
 		results := make([]updateResult, 0, len(ids))
@@ -77,9 +90,6 @@ func registerBatchTools(s *mcp.Server, client *gitlab.Client) {
 					opts.MilestoneID = gitlab.Ptr(args.MilestoneID)
 				}
 				_, _, err = client.MergeRequests.UpdateMergeRequest(args.Project, id, opts)
-
-			default:
-				return textResult("Error: resource_type must be 'issue' or 'mr'"), nil, nil
 			}
 
 			if err != nil {
@@ -89,7 +99,21 @@ func registerBatchTools(s *mcp.Server, client *gitlab.Client) {
 			}
 		}
 
-		data, _ := json.Marshal(results)
+		var resp batchResponse
+		resp.Results = results
+		resp.Summary.Total = len(results)
+		for _, r := range results {
+			if r.Status == "updated" {
+				resp.Summary.Updated++
+			} else {
+				resp.Summary.Failed++
+			}
+		}
+
+		data, err := json.Marshal(resp)
+		if err != nil {
+			return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+		}
 		return textResult(string(data)), nil, nil
 	})
 }

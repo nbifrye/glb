@@ -41,9 +41,12 @@ func registerDiscussionTools(s *mcp.Server, client *gitlab.Client) {
 				ListOptions: gitlab.ListOptions{PerPage: perPage},
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error listing discussions: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error listing discussions: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(discussions)
+			data, err := json.Marshal(discussions)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 
 		case "issue":
@@ -51,19 +54,23 @@ func registerDiscussionTools(s *mcp.Server, client *gitlab.Client) {
 				ListOptions: gitlab.ListOptions{PerPage: perPage},
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error listing discussions: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error listing discussions: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(discussions)
+			data, err := json.Marshal(discussions)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 
 		default:
-			return textResult("Error: resource_type must be 'mr' or 'issue'"), nil, nil
+			return errorResult("Error: resource_type must be 'mr' or 'issue'"), nil, nil
 		}
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "reply_to_discussion",
 		Description: "Reply to a discussion thread on a merge request or issue. Unlike glab's note command which only creates top-level comments, this replies within an existing thread. [DIFFERENTIATED: not available in glab]",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: boolPtr(false)},
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args replyToDiscussionArgs) (*mcp.CallToolResult, any, error) {
 		switch args.ResourceType {
 		case "mr":
@@ -71,7 +78,7 @@ func registerDiscussionTools(s *mcp.Server, client *gitlab.Client) {
 				Body: gitlab.Ptr(args.Body),
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error replying: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error replying: %v", err)), nil, nil
 			}
 			return textResult(fmt.Sprintf("Added reply (note #%d) to discussion %s", note.ID, args.DiscussionID)), nil, nil
 
@@ -80,12 +87,12 @@ func registerDiscussionTools(s *mcp.Server, client *gitlab.Client) {
 				Body: gitlab.Ptr(args.Body),
 			})
 			if err != nil {
-				return textResult(fmt.Sprintf("Error replying: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error replying: %v", err)), nil, nil
 			}
 			return textResult(fmt.Sprintf("Added reply (note #%d) to discussion %s", note.ID, args.DiscussionID)), nil, nil
 
 		default:
-			return textResult("Error: resource_type must be 'mr' or 'issue'"), nil, nil
+			return errorResult("Error: resource_type must be 'mr' or 'issue'"), nil, nil
 		}
 	})
 }

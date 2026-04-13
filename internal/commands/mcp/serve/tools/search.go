@@ -33,26 +33,35 @@ func registerSearchTools(s *mcp.Server, client *gitlab.Client) {
 		if args.Project != "" {
 			results, _, err := client.Search.BlobsByProject(args.Project, args.Query, opts)
 			if err != nil {
-				return textResult(fmt.Sprintf("Error searching: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error searching: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(results)
+			data, err := json.Marshal(results)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 		}
 
 		if args.Group != "" {
 			results, _, err := client.Search.BlobsByGroup(args.Group, args.Query, opts)
 			if err != nil {
-				return textResult(fmt.Sprintf("Error searching: %v", err)), nil, nil
+				return errorResult(fmt.Sprintf("Error searching: %v", err)), nil, nil
 			}
-			data, _ := json.Marshal(results)
+			data, err := json.Marshal(results)
+			if err != nil {
+				return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+			}
 			return textResult(string(data)), nil, nil
 		}
 
 		results, _, err := client.Search.Blobs(args.Query, opts)
 		if err != nil {
-			return textResult(fmt.Sprintf("Error searching: %v", err)), nil, nil
+			return errorResult(fmt.Sprintf("Error searching: %v", err)), nil, nil
 		}
-		data, _ := json.Marshal(results)
+		data, err := json.Marshal(results)
+		if err != nil {
+			return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+		}
 		return textResult(string(data)), nil, nil
 	})
 }

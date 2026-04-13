@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -32,13 +33,16 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			mr, _, err := client.MergeRequests.GetMergeRequest(project, int64(mrID), nil)
+			mr, err := gitlabop.GetMergeRequest(client, project, int64(mrID))
 			if err != nil {
-				return fmt.Errorf("getting merge request: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(mr, "", "  ")
+				data, err := json.MarshalIndent(mr, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -31,29 +31,24 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			opts := &gitlab.CreateMergeRequestOptions{
-				Title:        gitlab.Ptr(title),
-				SourceBranch: gitlab.Ptr(sourceBranch),
-				TargetBranch: gitlab.Ptr(targetBranch),
-			}
-			if description != "" {
-				opts.Description = gitlab.Ptr(description)
-			}
-			if len(labels) > 0 {
-				opts.Labels = (*gitlab.LabelOptions)(&labels)
-			}
-			if draft {
-				t := "Draft: " + title
-				opts.Title = gitlab.Ptr(t)
-			}
-
-			mr, _, err := client.MergeRequests.CreateMergeRequest(project, opts)
+			mr, err := gitlabop.CreateMergeRequest(client, gitlabop.CreateMergeRequestOptions{
+				Project:      project,
+				Title:        title,
+				SourceBranch: sourceBranch,
+				TargetBranch: targetBranch,
+				Description:  description,
+				Labels:       labels,
+				Draft:        draft,
+			})
 			if err != nil {
-				return fmt.Errorf("creating merge request: %w", err)
+				return err
 			}
 
 			if outputJSON {
-				data, _ := json.MarshalIndent(mr, "", "  ")
+				data, err := json.MarshalIndent(mr, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}

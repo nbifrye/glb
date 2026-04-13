@@ -37,6 +37,12 @@ func configFilePath() string {
 	return filepath.Join(ConfigDir(), "config.yml")
 }
 
+func NewEmpty() *Config {
+	return &Config{
+		data: configData{Hosts: make(map[string]*HostConfig)},
+	}
+}
+
 func Load() (*Config, error) {
 	c := &Config{
 		data:     configData{Hosts: make(map[string]*HostConfig)},
@@ -91,7 +97,7 @@ func (c *Config) SetHost(hostname, token, apiProtocol string) {
 
 func (c *Config) Write() error {
 	dir := filepath.Dir(c.filePath)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 

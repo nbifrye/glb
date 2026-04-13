@@ -8,6 +8,7 @@ import (
 	authCmd "github.com/nbifrye/glb/internal/commands/auth"
 	ciCmd "github.com/nbifrye/glb/internal/commands/ci"
 	issueCmd "github.com/nbifrye/glb/internal/commands/issue"
+	labelCmd "github.com/nbifrye/glb/internal/commands/label"
 	mcpCmd "github.com/nbifrye/glb/internal/commands/mcp"
 	mrCmd "github.com/nbifrye/glb/internal/commands/mr"
 	projectCmd "github.com/nbifrye/glb/internal/commands/project"
@@ -29,8 +30,9 @@ func NewRootCmd(f *cmdutils.Factory, version string) *cobra.Command {
 	cmd.AddCommand(issueCmd.NewCmd(f))
 	cmd.AddCommand(mrCmd.NewCmd(f))
 	cmd.AddCommand(ciCmd.NewCmd(f))
+	cmd.AddCommand(labelCmd.NewCmd(f))
 	cmd.AddCommand(apiCmd.NewCmd(f))
-	cmd.AddCommand(mcpCmd.NewCmd(f))
+	cmd.AddCommand(mcpCmd.NewCmd(f, version))
 
 	return cmd
 }

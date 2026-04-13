@@ -38,7 +38,7 @@ func registerArtifactTools(s *mcp.Server, client *gitlab.Client) {
 			ListOptions: gitlab.ListOptions{PerPage: perPage},
 		})
 		if err != nil {
-			return textResult(fmt.Sprintf("Error listing jobs: %v", err)), nil, nil
+			return errorResult(fmt.Sprintf("Error listing jobs: %v", err)), nil, nil
 		}
 
 		results := make([]jobArtifactInfo, 0)
@@ -54,7 +54,10 @@ func registerArtifactTools(s *mcp.Server, client *gitlab.Client) {
 			}
 		}
 
-		data, _ := json.Marshal(results)
+		data, err := json.Marshal(results)
+		if err != nil {
+			return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+		}
 		return textResult(string(data)), nil, nil
 	})
 }

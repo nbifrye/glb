@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/nbifrye/glb/internal/cmdutils"
+	"github.com/nbifrye/glb/internal/gitlabop"
 )
 
 func NewCmd(f *cmdutils.Factory) *cobra.Command {
@@ -32,24 +32,20 @@ func NewCmd(f *cmdutils.Factory) *cobra.Command {
 				return err
 			}
 
-			versions, _, err := client.MergeRequests.GetMergeRequestDiffVersions(project, int64(mrID), &gitlab.GetMergeRequestDiffVersionsOptions{})
+			version, err := gitlabop.GetMergeRequestDiff(client, project, int64(mrID))
 			if err != nil {
-				return fmt.Errorf("getting MR diff versions: %w", err)
+				return err
 			}
-
-			if len(versions) == 0 {
+			if version == nil {
 				fmt.Fprintln(f.IO.Out, "No diffs found.")
 				return nil
 			}
 
-			latest := versions[0]
-			version, _, err := client.MergeRequests.GetSingleMergeRequestDiffVersion(project, int64(mrID), latest.ID, &gitlab.GetSingleMergeRequestDiffVersionOptions{})
-			if err != nil {
-				return fmt.Errorf("getting diff version: %w", err)
-			}
-
 			if outputJSON {
-				data, _ := json.MarshalIndent(version, "", "  ")
+				data, err := json.MarshalIndent(version, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling response: %w", err)
+				}
 				fmt.Fprintln(f.IO.Out, string(data))
 				return nil
 			}

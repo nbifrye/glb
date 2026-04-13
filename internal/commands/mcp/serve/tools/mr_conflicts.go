@@ -31,7 +31,7 @@ func registerMRConflictTools(s *mcp.Server, client *gitlab.Client) {
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args getMRConflictsArgs) (*mcp.CallToolResult, any, error) {
 		mr, _, err := client.MergeRequests.GetMergeRequest(args.Project, args.MRID, nil)
 		if err != nil {
-			return textResult(fmt.Sprintf("Error getting MR: %v", err)), nil, nil
+			return errorResult(fmt.Sprintf("Error getting MR: %v", err)), nil, nil
 		}
 
 		info := conflictInfo{
@@ -43,7 +43,10 @@ func registerMRConflictTools(s *mcp.Server, client *gitlab.Client) {
 			DetailedMergeStatus: mr.DetailedMergeStatus,
 		}
 
-		data, _ := json.Marshal(info)
+		data, err := json.Marshal(info)
+		if err != nil {
+			return errorResult(fmt.Sprintf("Error marshaling response: %v", err)), nil, nil
+		}
 		return textResult(string(data)), nil, nil
 	})
 }
